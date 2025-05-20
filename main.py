@@ -1,6 +1,5 @@
 import streamlit as st
 import random
-import time
 
 # --- 원소 데이터베이스
 elements = [
@@ -26,7 +25,7 @@ elements = [
     {"name": "칼슘", "symbol": "Ca", "description": "뼈와 치아의 구성 성분"},
 ]
 
-# --- 상태 변수 초기화
+# --- 상태 초기화
 if "score" not in st.session_state:
     st.session_state.score = 0
 if "current_q" not in st.session_state:
@@ -37,20 +36,31 @@ if "answered" not in st.session_state:
     st.session_state.answered = False
 if "selected_answer" not in st.session_state:
     st.session_state.selected_answer = ""
+if "choices_list" not in st.session_state:
+    st.session_state.choices_list = []
 
-# --- 타이틀
+# --- 제목 출력
 st.title("🔬 원소의 특징을 보고 원소 맞추기 퀴즈")
 st.write("10문제 랜덤 객관식 퀴즈입니다. 정답을 맞히면 축포가 터집니다!")
 
-# --- 문제 출제
+# --- 문제 출력
 if st.session_state.current_q < 10:
     q = st.session_state.questions[st.session_state.current_q]
-    choices = random.sample([el["name"] for el in elements if el["name"] != q["name"]], 3) + [q["name"]]
-    random.shuffle(choices)
 
-    st.markdown(f"**Q{st.session_state.current_q+1}.** {q['description']}")
+    # 보기 순서 고정
+    if len(st.session_state.choices_list) <= st.session_state.current_q:
+        wrong_choices = [el["name"] for el in elements if el["name"] != q["name"]]
+        choices = random.sample(wrong_choices, 3) + [q["name"]]
+        random.shuffle(choices)
+        st.session_state.choices_list.append(choices)
+    else:
+        choices = st.session_state.choices_list[st.session_state.current_q]
+
+    # 문제 표시
+    st.markdown(f"**Q{st.session_state.current_q + 1}.** {q['description']}")
     selected = st.radio("정답을 고르세요", choices, key=f"radio_{st.session_state.current_q}")
 
+    # 정답 제출
     if not st.session_state.answered:
         if st.button("제출하기"):
             st.session_state.selected_answer = selected
@@ -61,7 +71,6 @@ if st.session_state.current_q < 10:
                 st.balloons()
             else:
                 st.error(f"오답입니다. 정답은 {q['name']}입니다.")
-
     else:
         if st.button("다음 문제"):
             st.session_state.current_q += 1
@@ -69,6 +78,7 @@ if st.session_state.current_q < 10:
             st.session_state.selected_answer = ""
             st.rerun()
 
+# --- 종료 화면
 else:
     st.subheader("🎓 퀴즈 종료")
     st.write(f"총 점수: **{st.session_state.score} / 10**")
@@ -77,5 +87,5 @@ else:
         st.session_state.current_q = 0
         st.session_state.questions = random.sample(elements, 10)
         st.session_state.answered = False
+        st.session_state.choices_list = []
         st.rerun()
-
